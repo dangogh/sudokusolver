@@ -10,7 +10,7 @@ import (
 	"unicode"
 )
 
-type Cell int
+type Cell byte
 type Row []Cell
 type Puzzle []Row
 
@@ -30,6 +30,9 @@ func NewPuzzle(r io.Reader) (Puzzle, error) {
 				continue
 			}
 		}
+		if len(row) == 0 {
+			continue
+		}
 		if len(row) != 9 {
 			return Puzzle{}, errors.New("bad row with " + strconv.Itoa(len(row)) + "entries")
 		}
@@ -42,7 +45,7 @@ func (p Puzzle) String() string {
 	var s []byte
 	for _, r := range []Row(p) {
 		for _, b := range r {
-			if int(b) == 0 {
+			if byte(b) == 0 {
 				s = append(s, '_')
 			} else {
 				s = append(s, byte(b)+'0')
@@ -55,6 +58,7 @@ func (p Puzzle) String() string {
 }
 
 func (p Puzzle) Solve() Puzzle {
+	fmt.Printf("puzzle is %v\n", p)
 	return p
 }
 
