@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"strings"
 	"testing"
+	"unicode"
 )
 
 var testPuzzles = []string{
@@ -32,6 +34,15 @@ var solvedPuzzles = []string{
 `,
 }
 
+func stripSpaces(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, s)
+}
+
 func TestSolvedPuzzle(t *testing.T) {
 	for i, s := range testPuzzles {
 		r := strings.NewReader(s)
@@ -39,8 +50,8 @@ func TestSolvedPuzzle(t *testing.T) {
 		if err != nil {
 			t.Errorf("error reading puzzle: %s", err.Error())
 		}
-		if p.String() != s {
-			t.Errorf("puzzle in `\n%s` != puzzle out: `\n%s`", s, p.String())
+		if bytes.Compare([]byte(p.String()), []byte(s)) != 0 {
+			t.Errorf("puzzle in `\n%v` != puzzle out: `\n%v`", []byte(p.String()), []byte(s))
 		}
 
 		// each group has 9 cells, each cell has 3 groups
@@ -67,7 +78,7 @@ func TestSolvedPuzzle(t *testing.T) {
 		}
 
 		solved := p.Solve()
-		if solved.String() != solvedPuzzles[i] {
+		if stripSpaces(solved.String()) != stripSpaces(solvedPuzzles[i]) {
 			t.Errorf("solution: `\n%s` != solved: `\n%s`", solvedPuzzles[i], solved.String())
 		}
 	}

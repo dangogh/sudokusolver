@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -140,6 +139,21 @@ func (p Puzzle) Cells() []*Cell {
 	var cells []*Cell
 	for _, r := range p.Rows {
 		cells = append(cells, []*Cell(r))
+}
+
+func (p Puzzle) String() string {
+	var s []byte
+	for i, c := range p {
+		if byte(c) == 0 {
+			s = append(s, '_')
+		} else {
+			s = append(s, byte(c)+'0')
+		}
+		if (i+1)%PuzzleSize == 0 {
+			s = append(s, '\n')
+		} else {
+			s = append(s, ' ')
+		}
 	}
 	return cells
 }
@@ -197,5 +211,4 @@ func main() {
 		puzzle.Solve()
 		fmt.Println(puzzle.String())
 	}
-
 }
