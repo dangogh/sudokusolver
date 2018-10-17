@@ -2,57 +2,68 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"unicode"
 )
 
-type Cell byte
-type Row []Cell
-type Puzzle []Row
+type Puzzle []byte
+
+const PuzzleSize = 9
+
+type Square struct {
+	pos      int
+	possible []byte
+}
+
+func (s Square) Row() int {
+	return s.pos / PuzzleSize
+}
+
+func (s Square) Column() int {
+	return s.pos % PuzzleSize
+}
+
+func (s Square) Box() int {
+	return s.Column()/3 + s.Row()/3*3
+}
 
 func NewPuzzle(r io.Reader) (Puzzle, error) {
 	scanner := bufio.NewScanner(r)
 
-	var rows []Row
+	var p Puzzle
 	for scanner.Scan() {
-		var row []Cell
 		for _, c := range scanner.Bytes() {
 			switch {
 			case c == '_':
-				row = append(row, Cell(0))
+				p = append(p, 0)
 			case unicode.IsDigit(rune(c)):
-				row = append(row, Cell(c-'0'))
+				p = append(p, byte(c-'0'))
 			default:
 				continue
 			}
 		}
-		if len(row) == 0 {
-			continue
-		}
-		if len(row) != 9 {
-			return Puzzle{}, errors.New("bad row with " + strconv.Itoa(len(row)) + "entries")
-		}
-		rows = append(rows, row)
 	}
-	return Puzzle(rows), nil
+	if len(p) != PuzzleSize*PuzzleSize {
+		return p, fmt.Errorf("expected %d squares; got %d", PuzzleSize*PuzzleSize, len(p))
+	}
+	return p, nil
 }
 
 func (p Puzzle) String() string {
 	var s []byte
-	for _, r := range []Row(p) {
-		for _, b := range r {
-			if byte(b) == 0 {
-				s = append(s, '_')
-			} else {
-				s = append(s, byte(b)+'0')
-			}
+	for i, c := range p {
+		if byte(c) == 0 {
+			s = append(s, '_')
+		} else {
+			s = append(s, byte(c)+'0')
+		}
+		if (i+1)%PuzzleSize == 0 {
+			s = append(s, '\n')
+		} else {
 			s = append(s, ' ')
 		}
-		s[len(s)-1] = '\n'
 	}
 	return string(s)
 }
@@ -72,5 +83,4 @@ func main() {
 		puzzle.Solve()
 		fmt.Println(puzzle.String())
 	}
-
 }
