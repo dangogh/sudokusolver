@@ -18,6 +18,14 @@ func NewCell(val byte) *Cell {
 	return &cell
 }
 
+func (c Cell) Value() byte {
+	return byte(c)
+}
+
+func (c *Cell) Fill(b byte) {
+	*c = Cell(b)
+}
+
 func (c Cell) String() string {
 	i := byte(c)
 	if i == 0 {
@@ -27,6 +35,39 @@ func (c Cell) String() string {
 }
 
 type Group []*Cell
+
+func (g Group) Available() []byte {
+	taken := make(map[byte]struct{}, 9)
+	for _, c := range g {
+		if c.Value() == 0 {
+			continue
+		}
+		taken[c.Value()] = struct{}{}
+	}
+	var avail []byte
+	var v byte
+	for v = 0; v < 9; v++ {
+		if _, ok := taken[v]; !ok {
+			avail = append(avail, v)
+		}
+	}
+	return avail
+}
+
+type byAvail []Group
+
+func (g byAvail) Len() int {
+	return len(g)
+}
+
+func (g byAvail) Less(a, b Group) bool {
+	return len(a.Available()) < len(b.Available())
+}
+
+func (g *byAvail) Swap(i, j int) {
+	s := []Group(*g)
+	s[i], s[j] = s[j], s[i]
+}
 
 type Puzzle struct {
 	Rows    []Group
@@ -74,34 +115,38 @@ func NewPuzzle(r io.Reader) (Puzzle, error) {
 	return p, nil
 }
 
+func (p Puzzle) Groups() []Group {
+	groups := append(p.Rows, p.Columns...)
+	return append(groups, p.Boxes...)
+}
+
 func (p Puzzle) Solve() Puzzle {
 	fmt.Printf("puzzle is\n%v\n", p)
-	groups := append(p.Rows, p.Columns...)
-	groups = append(groups, p.Boxes...)
-
-	/*
-		minAvail := 9
-		changed := false
-			// sort by number of available numbers
-			for _, g := range groups {
-				a := g.Available()
-				switch len(a) {
-				case 0:
-					continue
-				case 1:
-					for _, c := range g {
-						if c.Value() == 0 {
-							c.Fill(a[0])
-							break
-						}
-					}
-				default:
-					if len(a) < len(minGroup.Available()) {
-						minGroup = g
+	minGroup := Group{}
+	changed := true
+	// sort by number of available numbers
+	for changed {
+		changed = false
+		for _, g := range p.Groups() {
+			a := g.Available()
+			switch len(a) {
+			case 0:
+				continue
+			case 1:
+				for _, c := range g {
+					if c.Value() == 0 {
+						c.Fill(a[0])
+						changed = true
+						break
 					}
 				}
+			default:
+				if len(a) < len(minGroup.Available()) {
+					minGroup = g
+				}
 			}
-	*/
+		}
+	}
 	return p
 }
 
