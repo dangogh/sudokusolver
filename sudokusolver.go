@@ -10,22 +10,24 @@ import (
 
 type Puzzle []byte
 
-const PuzzleSize = 9
+const PuzzleSize = byte(9)
 
+// Square is a single entry in the puzzle
 type Square struct {
-	pos      int
+	pos      byte
 	possible []byte
 }
 
-func (s Square) Row() int {
+func (s Square) Row() byte {
 	return s.pos / PuzzleSize
 }
 
-func (s Square) Column() int {
+func (s Square) Column() byte {
 	return s.pos % PuzzleSize
 }
 
-func (s Square) Box() int {
+// Box is the index of the 3x3 box this square is in; numbered top-to-bottom, left-to-right
+func (s Square) Box() byte {
 	return s.Column()/3 + s.Row()/3*3
 }
 
@@ -45,7 +47,7 @@ func NewPuzzle(r io.Reader) (Puzzle, error) {
 			}
 		}
 	}
-	if len(p) != PuzzleSize*PuzzleSize {
+	if byte(len(p)) != PuzzleSize*PuzzleSize {
 		return p, fmt.Errorf("expected %d squares; got %d", PuzzleSize*PuzzleSize, len(p))
 	}
 	return p, nil
@@ -59,7 +61,7 @@ func (p Puzzle) String() string {
 		} else {
 			s = append(s, byte(c)+'0')
 		}
-		if (i+1)%PuzzleSize == 0 {
+		if byte(i+1)%PuzzleSize == 0 {
 			s = append(s, '\n')
 		} else {
 			s = append(s, ' ')
