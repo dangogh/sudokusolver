@@ -118,19 +118,9 @@ func NewPuzzle(r io.Reader) (Puzzle, error) {
 			}
 			row = append(row, c)
 		}
-		if len(row) == 0 {
-			continue
-		}
-		if len(row) != 9 {
-			return Puzzle{}, errors.New("bad row with " + strconv.Itoa(len(row)) + "entries")
-		}
-		p.Rows[rowIdx] = Group(row)
-		for colIdx, c := range row {
-			p.Columns[colIdx] = append(p.Columns[colIdx], c)
-			boxIdx := 3*(rowIdx/3) + colIdx/3
-			p.Boxes[boxIdx] = append(p.Boxes[boxIdx], c)
-		}
-		rowIdx++
+	}
+	if byte(len(p)) != PuzzleSize*PuzzleSize {
+		return p, fmt.Errorf("expected %d squares; got %d", PuzzleSize*PuzzleSize, len(p))
 	}
 	return p, nil
 }
@@ -149,7 +139,7 @@ func (p Puzzle) String() string {
 		} else {
 			s = append(s, byte(c)+'0')
 		}
-		if (i+1)%PuzzleSize == 0 {
+		if byte(i+1)%PuzzleSize == 0 {
 			s = append(s, '\n')
 		} else {
 			s = append(s, ' ')
