@@ -11,15 +11,31 @@ import (
 	"unicode"
 )
 
-type Cell byte
-
-func NewCell(val byte) *Cell {
-	cell := Cell(val)
-	return &cell
+type Cell struct {
+	Value byte
+	Pos   byte
 }
 
-func (c Cell) Value() byte {
-	return byte(c)
+func NewCell(pos, val byte) *Cell {
+	return &Cell{Pos: pos, Value: val}
+}
+
+func (c Cell) Row() byte {
+	return c.Pos / 9
+}
+
+func (c Cell) Column() byte {
+	return c.Pos % 9
+}
+
+func (c Cell) Box() byte {
+	return 3*(c.Row()/3) + c.Column()/3
+}
+
+func (c Cell) Available() []byte {
+	r := c.Row().Available()
+	c := c.Column().Available()
+	b := c.Box().Available()
 }
 
 func (c *Cell) Fill(b byte) {
@@ -36,22 +52,15 @@ func (c Cell) String() string {
 
 type Group []*Cell
 
-func (g Group) Available() []byte {
+func (g Group) Taken() map[byte]struct{} {
 	taken := make(map[byte]struct{}, 9)
 	for _, c := range g {
-		if c.Value() == 0 {
+		if c.Value == 0 {
 			continue
 		}
-		taken[c.Value()] = struct{}{}
+		taken[c.Value] = struct{}{}
 	}
-	var avail []byte
-	var v byte
-	for v = 0; v < 9; v++ {
-		if _, ok := taken[v]; !ok {
-			avail = append(avail, v)
-		}
-	}
-	return avail
+	return taken
 }
 
 type byAvail []Group
@@ -61,12 +70,24 @@ func (g byAvail) Len() int {
 }
 
 func (g byAvail) Less(a, b Group) bool {
-	return len(a.Available()) < len(b.Available())
+	return len(a.Taken()) > len(b.Taken())
 }
 
 func (g *byAvail) Swap(i, j int) {
 	s := []Group(*g)
 	s[i], s[j] = s[j], s[i]
+}
+
+func (c Cell) Taken() map[byte]struct{} {
+
+	taken := c.Row().Taken()
+	for t := range c.Column().Taken() {
+		taken[t] = struct{}{}
+	}
+	for t := range c.Box().Taken() {
+		taken[t] = struct{}{}
+	}
+	return taken
 }
 
 type Puzzle struct {
@@ -115,6 +136,14 @@ func NewPuzzle(r io.Reader) (Puzzle, error) {
 	return p, nil
 }
 
+func (p Puzzle) Cells() []*Cell {
+	var cells []*Cell
+	for _, r := range p.Rows {
+		cells = append(cells, []*Cell(r))
+	}
+	return cells
+}
+
 func (p Puzzle) Groups() []Group {
 	groups := append(p.Rows, p.Columns...)
 	return append(groups, p.Boxes...)
@@ -122,31 +151,27 @@ func (p Puzzle) Groups() []Group {
 
 func (p Puzzle) Solve() Puzzle {
 	fmt.Printf("puzzle is\n%v\n", p)
-	minGroup := Group{}
-	changed := true
-	// sort by number of available numbers
-	for changed {
-		changed = false
-		for _, g := range p.Groups() {
-			a := g.Available()
-			switch len(a) {
-			case 0:
-				continue
-			case 1:
-				for _, c := range g {
-					if c.Value() == 0 {
-						c.Fill(a[0])
-						changed = true
-						break
-					}
-				}
-			default:
-				if len(a) < len(minGroup.Available()) {
-					minGroup = g
+	cells := p.Cells()
+	for i, c := range cells {
+		if c == nil {
+			continue
+		}
+		taken := c.Taken()
+		switch len(taken) {
+		case 8:
+			// one number left..
+			var j byte
+			for j = 1; j <= 9; j++ {
+				if _, ok := taken[j]; !ok {
+					c.Fill(j)
+					taken[j] = struct{}{}
+					break
 				}
 			}
 		}
+		if len(taken) == 9
 	}
+
 	return p
 }
 
