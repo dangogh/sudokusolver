@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"strings"
 	"testing"
 	"unicode"
@@ -50,8 +49,8 @@ func TestSolvedPuzzle(t *testing.T) {
 		if err != nil {
 			t.Errorf("error reading puzzle: %s", err.Error())
 		}
-		if bytes.Compare([]byte(p.String()), []byte(s)) != 0 {
-			t.Errorf("puzzle in `\n%v` != puzzle out: `\n%v`", []byte(p.String()), []byte(s))
+		if strings.Compare(p.String(), s) != 0 {
+			t.Errorf("puzzle in `\n%s` != puzzle out: `\n%s`", p.String(), s)
 		}
 
 		// each group has 9 cells, each cell has 3 groups

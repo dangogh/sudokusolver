@@ -5,44 +5,35 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"unicode"
 )
 
+const PuzzleSize = 9
+
 type Cell struct {
 	Value byte
-	Pos   byte
+	Pos   int
 }
 
-func NewCell(pos, val byte) *Cell {
-	return &Cell{Pos: pos, Value: val}
-}
-
-func (c Cell) Row() byte {
+func (c Cell) Row() int {
 	return c.Pos / 9
 }
 
-func (c Cell) Column() byte {
+func (c Cell) Column() int {
 	return c.Pos % 9
 }
 
-func (c Cell) Box() byte {
+func (c Cell) Box() int {
 	return 3*(c.Row()/3) + c.Column()/3
 }
 
-func (c Cell) Available() []byte {
-	r := c.Row().Available()
-	c := c.Column().Available()
-	b := c.Box().Available()
-}
-
 func (c *Cell) Fill(b byte) {
-	*c = Cell(b)
+	c.Value = b
 }
 
 func (c Cell) String() string {
-	i := byte(c)
+	i := c.Value
 	if i == 0 {
 		return "_"
 	}
@@ -62,28 +53,12 @@ func (g Group) Taken() map[byte]struct{} {
 	return taken
 }
 
-type byAvail []Group
-
-func (g byAvail) Len() int {
-	return len(g)
-}
-
-func (g byAvail) Less(a, b Group) bool {
-	return len(a.Taken()) > len(b.Taken())
-}
-
-func (g *byAvail) Swap(i, j int) {
-	s := []Group(*g)
-	s[i], s[j] = s[j], s[i]
-}
-
-func (c Cell) Taken() map[byte]struct{} {
-
-	taken := c.Row().Taken()
-	for t := range c.Column().Taken() {
+func (p Puzzle) Taken(c Cell) map[byte]struct{} {
+	taken := p.Rows[c.Row()].Taken()
+	for t := range p.Columns[c.Column()].Taken() {
 		taken[t] = struct{}{}
 	}
-	for t := range c.Box().Taken() {
+	for t := range p.Boxes[c.Box()].Taken() {
 		taken[t] = struct{}{}
 	}
 	return taken
@@ -103,24 +78,28 @@ func NewPuzzle(r io.Reader) (Puzzle, error) {
 	p.Columns = make([]Group, 9)
 	p.Boxes = make([]Group, 9)
 
-	var rowIdx int
+	var pos int
 	for scanner.Scan() {
-		var row []*Cell
 		for _, b := range scanner.Bytes() {
-			var c *Cell
+			var val byte
 			switch {
 			case b == '_':
-				c = NewCell(0)
+				val = 0
 			case unicode.IsDigit(rune(b)):
-				c = NewCell(b - '0')
+				val = b - '0'
 			default:
 				continue
 			}
-			row = append(row, c)
+			c := &Cell{Pos: pos, Value: val}
+			fmt.Printf("got a cell{pos:%d,val:%d}: %++v\n", pos, val, c)
+			p.Rows[c.Row()] = append(p.Rows[c.Row()], c)
+			p.Columns[c.Column()] = append(p.Columns[c.Column()], c)
+			p.Boxes[c.Box()] = append(p.Boxes[c.Box()], c)
+			pos++
 		}
 	}
-	if byte(len(p)) != PuzzleSize*PuzzleSize {
-		return p, fmt.Errorf("expected %d squares; got %d", PuzzleSize*PuzzleSize, len(p))
+	if pos != PuzzleSize*PuzzleSize {
+		return p, fmt.Errorf("expected %d squares; got %d", PuzzleSize*PuzzleSize, pos)
 	}
 	return p, nil
 }
@@ -128,22 +107,7 @@ func NewPuzzle(r io.Reader) (Puzzle, error) {
 func (p Puzzle) Cells() []*Cell {
 	var cells []*Cell
 	for _, r := range p.Rows {
-		cells = append(cells, []*Cell(r))
-}
-
-func (p Puzzle) String() string {
-	var s []byte
-	for i, c := range p {
-		if byte(c) == 0 {
-			s = append(s, '_')
-		} else {
-			s = append(s, byte(c)+'0')
-		}
-		if byte(i+1)%PuzzleSize == 0 {
-			s = append(s, '\n')
-		} else {
-			s = append(s, ' ')
-		}
+		cells = append(cells, []*Cell(r)...)
 	}
 	return cells
 }
@@ -160,7 +124,7 @@ func (p Puzzle) Solve() Puzzle {
 		if c == nil {
 			continue
 		}
-		taken := c.Taken()
+		taken := p.Taken(*c)
 		switch len(taken) {
 		case 8:
 			// one number left..
@@ -172,10 +136,11 @@ func (p Puzzle) Solve() Puzzle {
 					break
 				}
 			}
+			cells[i] = nil
+		case 9:
+			cells[i] = nil
 		}
-		if len(taken) == 9
 	}
-
 	return p
 }
 
